@@ -7,20 +7,21 @@ import (
 	"github.com/abiosoft/ishell"
 	"github.com/atotto/clipboard"
 	"os"
+	"strconv"
 )
 
-var accounts *Accounts
+
+var shell *ishell.Shell
 
 func main(){
 
     // create new shell.
     // by default, new shell includes 'exit', 'help' and 'clear' commands.
-    shell := ishell.New()
+    shell = ishell.New()
 
     // display welcome info.
-    shell.Println("Sample Interactive Shell")
+    shell.Println("EasyCmd GO")
 
-    // register a function for "greet" command.
     shell.AddCmd(&ishell.Cmd{
         Name: "greet",
         Help: "greet user",
@@ -41,13 +42,25 @@ func main(){
         Func: copyPass,
     })
 
-    load(shell)
+    shell.AddCmd(&ishell.Cmd{
+        Name: "find",
+        Help: "list accounts; type strings to filter",
+        Func: find,
+    })
+
+    shell.AddCmd(&ishell.Cmd{
+        Name: "show",
+        Help: "show details about an account",
+        Func: showDetails,
+    })
+
+    load()
     // run shell
     shell.Run()
 }
 
 
-func load(shell *ishell.Shell){
+func load(){
 
 	if password == "" {
 		shell.Print("Password: ")
@@ -58,8 +71,7 @@ func load(shell *ishell.Shell){
 		}
 	}
 
-	var err error 
-	if accounts, err = LoadAccounts(sessionPath, password); err != nil {
+	if err := LoadAccounts(sessionPath, password); err != nil {
 		shell.Println(err)
 		os.Exit(0)
 	}
@@ -87,6 +99,46 @@ func addAccount(c *ishell.Context) {
     c.Println(acc)
 }
 
+func find(c *ishell.Context){
+
+	if len(c.Args) == 0 {
+		c.Println("show all")
+		matches.Fill()
+		matches.Print()
+	}else {
+		search := strings.Join(c.Args, " ")
+		c.Println("searching " + search)
+		accounts.FindFunc(Account.FindAny, search)
+		matches.Print()
+	}
+}
+
+func showDetails(c *ishell.Context) {
+
+	if len(c.Args) == 0 {
+		c.Println("missing account info")
+		return
+	}
+
+	var acc *Account
+	var err error
+	var idx int
+
+	if idx, err = strconv.Atoi(c.Args[0]); err == nil {
+	   acc, err = matches.AccountAt(idx)
+	}else if idx, err = accounts.FindOne(strings.Join(c.Args, " ")); err == nil {
+		acc = &accounts[idx]
+	}
+
+	if err != nil {
+		c.Println(err)
+	}else{
+		c.Println("  Name:   ", (*acc).Name)
+		c.Println("  Pseudo: ", (*acc).Pseudo)
+		c.Println("  Email:  ", (*acc).Email)
+		c.Println("  Notes:  ", (*acc).Notes)
+	}
+}
 
 func lala_main() {
 	// the content has been generated with:
