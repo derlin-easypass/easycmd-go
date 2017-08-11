@@ -8,6 +8,7 @@ import (
 	"github.com/atotto/clipboard"
 	"os"
 	"strconv"
+	"errors"
 )
 
 
@@ -54,6 +55,12 @@ func main(){
         Func: showDetails,
     })
 
+    shell.AddCmd(&ishell.Cmd{
+        Name: "showpass",
+        Help: "show pass",
+        Func: showPass,
+    })
+
     load()
     // run shell
     shell.Run()
@@ -61,7 +68,6 @@ func main(){
 
 
 func load(){
-
 	if password == "" {
 		shell.Print("Password: ")
 		password = shell.ReadPassword()
@@ -79,10 +85,21 @@ func load(){
 
 
 func copyPass(c *ishell.Context) {
-	c.Println(strings.Join(c.Args, " "))
-	if err := clipboard.WriteAll("lala it works"); err != nil {
+	acc, err := accountFromHint(c.Args)
+
+	if err != nil {
 		c.Println(err)
+	}else if (*acc).Password == "" {
+		c.Println("empty password.")
+	}else{
+		if err = clipboard.WriteAll((*acc).Password); err != nil {
+			c.Println(err)
+		}else{
+			c.Println("Copied password from '", (*acc).Name, "' to clipboard.")
+		}
 	}
+
+	
 }
 
 func addAccount(c *ishell.Context) {
@@ -100,7 +117,6 @@ func addAccount(c *ishell.Context) {
 }
 
 func find(c *ishell.Context){
-
 	if len(c.Args) == 0 {
 		c.Println("show all")
 		matches.Fill()
@@ -114,21 +130,7 @@ func find(c *ishell.Context){
 }
 
 func showDetails(c *ishell.Context) {
-
-	if len(c.Args) == 0 {
-		c.Println("missing account info")
-		return
-	}
-
-	var acc *Account
-	var err error
-	var idx int
-
-	if idx, err = strconv.Atoi(c.Args[0]); err == nil {
-	   acc, err = matches.AccountAt(idx)
-	}else if idx, err = accounts.FindOne(strings.Join(c.Args, " ")); err == nil {
-		acc = &accounts[idx]
-	}
+	acc, err := accountFromHint(c.Args)
 
 	if err != nil {
 		c.Println(err)
@@ -138,6 +140,43 @@ func showDetails(c *ishell.Context) {
 		c.Println("  Email:  ", (*acc).Email)
 		c.Println("  Notes:  ", (*acc).Notes)
 	}
+}
+
+func showPass(c *ishell.Context) {
+	acc, err := accountFromHint(c.Args)
+
+	if err != nil {
+		c.Println(err)
+	}else if (*acc).Password == "" {
+		c.Println("empty password.")
+	}else{
+		c.Print("Pass: ", (*acc).Password)
+		c.ReadLine()
+		// put cursor one line up
+		c.Print("\033[1A")
+		// clear from the cursor to the end of the screen
+		c.Print("\033[0J")
+		c.Println()
+	}
+}
+
+
+func accountFromHint(args []string) (acc *Account, err error) {
+	if len(args) == 0 {
+		err = errors.New("missing account info")
+		return
+	}
+
+	var idx int
+
+	if idx, err = strconv.Atoi(args[0]); err == nil {
+	   acc, err = matches.AccountAt(idx)
+	}else if idx, err = accounts.FindOne(strings.Join(args, " ")); err == nil {
+		acc = &accounts[idx]
+	}
+
+	return 
+
 }
 
 func lala_main() {
