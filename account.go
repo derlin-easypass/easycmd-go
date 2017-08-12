@@ -6,7 +6,6 @@ import (
 	"errors"
 )
 
-
 type Account struct {
 	Name     string `json:"name"`
 	Pseudo   string `json:"pseudo"`
@@ -18,6 +17,8 @@ type Account struct {
 type Accounts []Account
 
 var accounts Accounts
+
+
 
 /* =======load/save */
 
@@ -52,7 +53,18 @@ func (acc Accounts) SaveAccounts(path string, password string) error {
 
 /* ======= find in accounts */
 
-func (accs Accounts) FindFunc(f func(acc Account, s string) bool, s string ) {
+func (accs Accounts) FindIn(field string, s string){
+	switch field {
+		case "name": accs.FindFunc(Account.FindName, s)
+		case "email": accs.FindFunc(Account.FindEmail, s)
+		case "pseudo": accs.FindFunc(Account.FindPseudo, s)
+		case "notes": accs.FindFunc(Account.FindNote, s)
+		default: accs.FindFunc(Account.FindAny, s) 
+	}
+}
+
+
+func (accs Accounts) FindFunc(f func(acc Account, s string) bool, s string) {
 	matches.Clear()
 	for idx, acc := range(accs) {
 		if f(acc, s) {
@@ -63,24 +75,38 @@ func (accs Accounts) FindFunc(f func(acc Account, s string) bool, s string ) {
 
 func (accs Accounts) FindOne(s string) (int, error) {
 	result := -1
+	err := errors.New("Ambiguous account.")
 
 	for idx, acc := range(accs) {
 		if acc.FindName(s) {
 			if result < 0 {
 				result = idx
 			}else{
-				return -1, errors.New("Ambiguous account")
+				return -1, err
 			}
 		}
 	}
-	return result, nil
+
+	if result >= 0 {
+		return result, nil
+	}
+	return -1, err
+}
+
+func (accs Accounts) ListEmpty(s string) {
+	matches.Clear()
+	for idx, acc := range(accs) {
+		if acc.IsEmpty(s) {
+			matches.Append(idx)
+		}
+	}
 }
 
 
 /* ======= find in account */
 
 func (acc Account) FindAny(s string) bool {
-	return acc.FindName(s) || acc.FindPseudo(s) || acc.FindEmail(s) || acc.FindNotes(s)
+	return acc.FindName(s) || acc.FindPseudo(s) || acc.FindEmail(s) || acc.FindNote(s)
 }
 
 func (acc Account) FindName(s string) bool {
@@ -95,9 +121,18 @@ func (acc Account) FindEmail(s string) bool {
 	return strings.Contains(strings.ToLower(acc.Email), s) 
 }
 
-func (acc Account) FindNotes(s string) bool {
+func (acc Account) FindNote(s string) bool {
 	return strings.Contains(strings.ToLower(acc.Notes), s) 
 }
 
-
+func (acc Account) IsEmpty(field string) bool {
+	switch field {
+		case "name": return acc.Name == ""
+		case "email": return acc.Email == ""
+		case "pseudo": return acc.Pseudo == ""
+		case "pass": return acc.Password == ""
+		case "notes": return acc.Notes == ""
+		default: return false 
+	}
+}
 

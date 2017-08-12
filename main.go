@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"encoding/json"
 	"strings"
 	"github.com/abiosoft/ishell"
 	"github.com/atotto/clipboard"
@@ -43,23 +41,58 @@ func main(){
         Func: copyPass,
     })
 
-    shell.AddCmd(&ishell.Cmd{
+    findCmd := &ishell.Cmd{
         Name: "find",
         Help: "list accounts; type strings to filter",
-        Func: find,
-    })
+        Func: findAny,
+    }
+    for _, field := range([]string{"name", "pseudo", "email", "notes"}) {
+		findCmd.AddCmd(&ishell.Cmd{
+			Name: field,
+			Help: "find in " + field + " only",
+			Func: func(c *ishell.Context) { find(c, field) },
+		})
+	}
+    shell.AddCmd(findCmd)
 
-    shell.AddCmd(&ishell.Cmd{
+    showCmd := &ishell.Cmd{
         Name: "show",
         Help: "show details about an account",
         Func: showDetails,
-    })
-
-    shell.AddCmd(&ishell.Cmd{
-        Name: "showpass",
+    }
+    showCmd.AddCmd(&ishell.Cmd{
+        Name: "pass",
         Help: "show pass",
         Func: showPass,
     })
+    shell.AddCmd(showCmd)
+
+    listCmd := &ishell.Cmd{
+        Name: "list",
+        Help: "list accounts",
+        Func: list,
+    }
+    listCmd.AddCmd(&ishell.Cmd{
+        Name: "matches",
+        Help: "list matches only",
+        Func: listMatches,
+    })
+    listEmptyCmd := &ishell.Cmd{
+        Name: "empty",
+        Help: "list accounts with empty property",
+    }
+	for _, field := range([]string{"name", "email", "notes", "pseudo", "pass"}) {
+		listEmptyCmd.AddCmd(&ishell.Cmd{
+			Name: field,
+			Help: "list accounts with an empty " + field,
+			Func: func(c *ishell.Context) { listEmpty(c, field) },
+		})
+	}
+	listCmd.AddCmd(listEmptyCmd)
+    shell.AddCmd(listCmd)
+
+
+    shell.NotFound(notFound)
 
     load()
     // run shell
@@ -98,14 +131,13 @@ func copyPass(c *ishell.Context) {
 			c.Println("Copied password from '", (*acc).Name, "' to clipboard.")
 		}
 	}
-
 	
 }
 
 func addAccount(c *ishell.Context) {
 	var acc Account
     c.Print("  Name: ")
-    acc.Name = c.ReadLineWithDefault("lucy")
+    acc.Name = c.ReadLine()
     c.Print("  Pseudo: ")
     acc.Name = c.ReadLine()
     c.Print("  Password: ")
@@ -116,17 +148,36 @@ func addAccount(c *ishell.Context) {
     c.Println(acc)
 }
 
-func find(c *ishell.Context){
+
+func list(c *ishell.Context){
+	c.Println("accounts: ")
+	matches.Fill()
+	matches.Print()
+}
+
+func listMatches(c *ishell.Context){
+	c.Println("matches: ")
+	matches.Print()
+}
+
+func listEmpty(c *ishell.Context, field string){
+	accounts.ListEmpty(field)
+	matches.Print()
+}
+
+func find(c *ishell.Context, field string){
 	if len(c.Args) == 0 {
-		c.Println("show all")
-		matches.Fill()
-		matches.Print()
+		list(c)
+
 	}else {
 		search := strings.Join(c.Args, " ")
-		c.Println("searching " + search)
-		accounts.FindFunc(Account.FindAny, search)
+		accounts.FindIn(field, search)
 		matches.Print()
 	}
+}
+
+func findAny(c *ishell.Context){
+	find(c, "")
 }
 
 func showDetails(c *ishell.Context) {
@@ -140,6 +191,11 @@ func showDetails(c *ishell.Context) {
 		c.Println("  Email:  ", (*acc).Email)
 		c.Println("  Notes:  ", (*acc).Notes)
 	}
+}
+
+func notFound(c *ishell.Context) {
+	c.Println("not command. Assuming find...")
+	findAny(c)
 }
 
 func showPass(c *ishell.Context) {
@@ -163,7 +219,11 @@ func showPass(c *ishell.Context) {
 
 func accountFromHint(args []string) (acc *Account, err error) {
 	if len(args) == 0 {
-		err = errors.New("missing account info")
+		if matches.Length() == 1 {
+			acc, err = matches.AccountAt(0)
+		}else{
+			err = errors.New("missing account info")
+		}
 		return
 	}
 
@@ -172,6 +232,8 @@ func accountFromHint(args []string) (acc *Account, err error) {
 	if idx, err = strconv.Atoi(args[0]); err == nil {
 	   acc, err = matches.AccountAt(idx)
 	}else if idx, err = accounts.FindOne(strings.Join(args, " ")); err == nil {
+		matches.Clear()
+		matches.Append(idx)
 		acc = &accounts[idx]
 	}
 
@@ -179,40 +241,3 @@ func accountFromHint(args []string) (acc *Account, err error) {
 
 }
 
-func lala_main() {
-	// the content has been generated with:
-	//  openssl enc -aes-128-cbc -pass pass:essai -salt -base6
-	o := NewOpenSSL()
-	result, err := o.DecryptString(`essai`, `U2FsdGVkX1/ktngEqYYCvmt7hpSu0x95/ZikdCf8684Bnt3xDulKlri4xAaNjwd5fNYvmyoayPIl
-xT+u8ISTBmCwf9vqsTsl9aSZT2ewACqNQA8IUwb8ZK6B9iQ+CVjxVU21Td6aFRrGO7BNEbv+nChI
-T1JxX952iamiSUjwUwMsBezDz/zEAgGTgY1fhzzhLmUMpM1gqdbkQksWBdaTTfHYSnIPjHWhPHyb
-WPjDp/o9y5WXZzf79LClu2nzg80JkRAmuou0PG6Uaka2jqjOKeab3qLKeIP4iztZ4/CYv1K9gxSV
-zEW/fSnFwZJVhu6tdQSESAiO77hJ+tPfddUk7qVDGzkCmvVJmUgCkQGjz/5ZuQ3iK7218oYbH26J
-3821vu0UNkikuNA0/J4ACg9SH+un+aoRVxs4RT2ZH9Jt4NYlIC86zrP9ePgLaP7WKQ8sdSNAJ4Bd
-EQyDI39dhpwYd6Bx6G+d6rkZKeNyJCsXy3Y3u0U8VYihSr5pqZf7yJZFgemotEGxlht4RTU3He6C
-6VcFE7c8t7+xLrgyPQK2j49yKjAGAEJq2sInxz6j85rTLOc85qhws3rf9C84kbrE9YJbsNE3l4Uq
-9UsxcJhvdmqOMO8hQcbjyFV/uCmkA8P6YbILm61VnvCz4P9XnkiDxTAi0SFlQKLxKOqBnpuz3ZXZ
-llKkwamQwdyL3vn+hRJn9QICLoc7gAbnykD6107WxxyvMLYWXE+u/FCV0FxHy0mBRSYtkXKTnxaO
-/h6GZ8SqmuZib6Mqw+78vQI/mwc2//UJyw/Ju26xVbUWp6roJmRPRdDPAOfO/Rtwcs4SUk1br1g6
-h6cmr22ZiLDo4khRNBMaVL5qxKWqGYZ4OCS9FkfZfACDg4nc0xD6k/BaX9SUb3kUKbT4W26ZCuy7
-cPnqeS4gUPIFYx2Fn7zIjt+xcd89ZK8dneT44jCeckcrsRO/n94dt/48ht0M3DAWwUJD7zh7kuHh
-f4K4T18022eAbn7acY8dHi3npVN+H2EvHzcJrfcqt2Ga0Y67Ed5nN+CGfX9OiIAUwP6W5OaaJrw+
-PXeolZXyaMo/T/Q49XlUY3nyV9dsVqPCRfxNa8XCWYKLSFLrhmaNybK3bcxi7ChSff4ig+38LXZu
-tXodufiQMc4OMNH7Mh7Pjm/CJxuFJIp0glzL0lE0F8QWs9mKaPqfRSbEkGmRZlHkboVSfnE4zcki
-m6rZn/t0sTdH6hekwg3lGNQyhP9WMHjldOkbJon+N/HrFqKVAEHYnJ+At9Bq82mfujsTlY7+3n8a
-nsybSUlvymU87/TpS1Rw+d18wgfkW6GnAB55aY6+iizVzXZ16oOFRB3+gIpEY4pZyok2iVfsTGuL
-FORVXN0p/5WO76GkLKhjCOphzIebPIPM1Mpkmq6ffrmW3gvRbaLb4Kj7Xknv97iu0rmAeowpgsG/
-DnP0gEA5ZbUab8mxukbLfCHvUwCVBfAPlOaeXF/vQ4EJXlcWny1vWhiLkqFsFV2p5jodnDmYezI8
-CjdbeJ3hUkCfJFAlmDCiG40Niy/kKc0j1s2AXOq2f6fo8DWCdQSqbqu2Uhtk1Lv04lbz2JqQIYlY
-9D4a7dQbGOlWDI5FPMA2CRXjxg==`)
-	fmt.Println(err)
-
-	var accounts []Account
-	if err := json.Unmarshal(result, &accounts); err != nil {
-		fmt.Println("error")
-		fmt.Printf("%v", err)
-	}
-	fmt.Printf("accounts are %v\n", accounts)
-	fmt.Printf("Decrypted string is: %s", result)
-
-}
