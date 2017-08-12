@@ -48,7 +48,7 @@ func (acc Accounts) SaveAccounts(path string, password string) error {
 	//  openssl enc -aes-128-cbc -pass pass:essai -salt -base6
 	b, _ := json.Marshal(acc)
 	o := NewOpenSSL()
-	return o.EncryptFile(password, path, string(b))
+	return o.EncryptFile(password, string(b), path)
 }
 
 /* ======= find in accounts */
@@ -136,3 +136,11 @@ func (acc Account) IsEmpty(field string) bool {
 	}
 }
 
+/* ======= sanitize account */
+func (acc *Account) Sanitize() {
+	// TODO
+	acc.Name = strings.TrimSpace(acc.Name)
+	acc.Pseudo = strings.TrimSpace(acc.Pseudo)
+	acc.Email = strings.TrimSpace(acc.Email)
+	acc.Notes = strings.TrimSpace(acc.Notes)
+}

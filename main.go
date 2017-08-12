@@ -22,17 +22,21 @@ func main(){
     shell.Println("EasyCmd GO")
 
     shell.AddCmd(&ishell.Cmd{
-        Name: "greet",
-        Help: "greet user",
-        Func: func(c *ishell.Context) {
-            c.Println("Hello", strings.Join(c.Args, " "))
-        },
+        Name: "edit",
+        Help: "edit account",
+        Func: editAccount,
     })
 
     shell.AddCmd(&ishell.Cmd{
         Name: "add",
         Help: "add a new account",
         Func: addAccount,
+    })
+
+     shell.AddCmd(&ishell.Cmd{
+        Name: "delete",
+        Help: "delete an account",
+        Func: deleteAccount,
     })
 
     shell.AddCmd(&ishell.Cmd{
@@ -47,10 +51,13 @@ func main(){
         Func: findAny,
     }
     for _, field := range([]string{"name", "pseudo", "email", "notes"}) {
+    	createFunc := func (field string) func(c *ishell.Context) {
+			return func(c *ishell.Context) { find(c, field) }
+		}
 		findCmd.AddCmd(&ishell.Cmd{
 			Name: field,
 			Help: "find in " + field + " only",
-			Func: func(c *ishell.Context) { find(c, field) },
+			Func: createFunc(field),
 		})
 	}
     shell.AddCmd(findCmd)
@@ -82,10 +89,13 @@ func main(){
         Help: "list accounts with empty property",
     }
 	for _, field := range([]string{"name", "email", "notes", "pseudo", "pass"}) {
+		createFunc := func (field string) func(c *ishell.Context) {
+			return func(c *ishell.Context) { listEmpty(c, field) }
+		}
 		listEmptyCmd.AddCmd(&ishell.Cmd{
 			Name: field,
 			Help: "list accounts with an empty " + field,
-			Func: func(c *ishell.Context) { listEmpty(c, field) },
+			Func: createFunc(field),
 		})
 	}
 	listCmd.AddCmd(listEmptyCmd)
@@ -118,7 +128,7 @@ func load(){
 
 
 func copyPass(c *ishell.Context) {
-	acc, err := accountFromHint(c.Args)
+	acc, _, err := accountFromHint(c.Args)
 
 	if err != nil {
 		c.Println(err)
@@ -134,24 +144,113 @@ func copyPass(c *ishell.Context) {
 	
 }
 
+func deleteAccount(c *ishell.Context) {
+	acc, idx, err := accountFromHint(c.Args)
+	if err != nil {
+		c.Println(err)
+		return
+	}
+
+	c.Print("delete account '", (*acc).Name, "' at index ", idx, "? [y|n] ")
+	if ok := c.ReadLine(); ok == "y" {
+    	accounts = append(accounts[:idx], accounts[idx+1:]...)
+    	err := accounts.SaveAccounts(sessionPath, password)
+    	if err == nil {
+	    	matches.Clear()
+    		c.Println("saved.")
+    	}else{
+    		c.Println(err)
+    	}
+    }else{
+    	c.Println("canceled.")
+    }
+
+}
+
+
 func addAccount(c *ishell.Context) {
 	var acc Account
     c.Print("  Name: ")
     acc.Name = c.ReadLine()
+    if name := strings.TrimSpace(acc.Name); name == "" {
+    	c.Println("empty name is not allowed")
+    	return
+    }
     c.Print("  Pseudo: ")
-    acc.Name = c.ReadLine()
+    acc.Pseudo = c.ReadLine()
+    c.Print("  Email: ")
+    acc.Email = c.ReadLine()
     c.Print("  Password: ")
     acc.Password = c.ReadPassword()
-    c.Println("Notes -- Input multiple lines and end with semicolon ';'.")
-    acc.Notes = c.ReadMultiLines(";")
-    c.Println()
-    c.Println(acc)
+    c.Print("  Notes: ")
+    acc.Notes = c.ReadLine()
+    
+     c.Print("Saving ? [y|n]")
+    if ok := c.ReadLine(); ok == "y" {
+    	(&acc).Sanitize()
+    	accounts = append(accounts, acc)
+    	err := accounts.SaveAccounts(sessionPath, password)
+    	if err == nil {
+	    	matches.Clear()
+    		matches.Append(len(accounts) -1)
+    		c.Println("saved.")
+    	}else{
+    		c.Println(err)
+    	}
+    }else{
+    	c.Println("canceled.")
+    }
 }
 
+func editAccount(c *ishell.Context) {
+	acc, idx, err := accountFromHint(c.Args)
+	if err != nil {
+		c.Println(err)
+		return
+	}
+	newAcc := Account{}
+    c.Println("  Name: ")
+    newAcc.Name = c.ReadLineWithDefault((*acc).Name)
+    if name := strings.TrimSpace(newAcc.Name); name == "" {
+    	c.Println("empty name is not allowed")
+    	return
+    }
+    c.Println("  Pseudo: ")
+    newAcc.Pseudo = c.ReadLineWithDefault((*acc).Pseudo)
+    c.Println("  Email: ")
+    newAcc.Email = c.ReadLineWithDefault((*acc).Email)
+    c.Print("  Password: ")
+    newAcc.Password = c.ReadPassword()  
+    c.Println("Notes")
+    newAcc.Notes = c.ReadLineWithDefault((*acc).Notes)
+
+    c.Print("Saving ? [y|n]")
+    if ok := c.ReadLine(); ok == "y" {
+    	(*acc).Name = newAcc.Name 
+    	(*acc).Pseudo = newAcc.Pseudo
+    	(*acc).Email = newAcc.Email
+    	if newAcc.Password != "" {
+    		(*acc).Password = newAcc.Password
+    	}
+    	(*acc).Notes = newAcc.Notes
+    	(*acc).Sanitize()
+
+    	err := accounts.SaveAccounts(sessionPath, password)
+    	if err == nil {
+	    	matches.Clear()
+	    	matches.Append(idx)
+	    	c.Println("saved")
+    	}else{
+    		c.Println(err)
+    	}
+    }else{
+    	c.Println("canceled.")
+    }
+}
 
 func list(c *ishell.Context){
-	c.Println("accounts: ")
 	matches.Fill()
+	c.Println("accounts: (", matches.Length(), ")")
 	matches.Print()
 }
 
@@ -171,6 +270,7 @@ func find(c *ishell.Context, field string){
 
 	}else {
 		search := strings.Join(c.Args, " ")
+		c.Println("searching for '" + search + "' in field " + field)
 		accounts.FindIn(field, search)
 		matches.Print()
 	}
@@ -181,7 +281,7 @@ func findAny(c *ishell.Context){
 }
 
 func showDetails(c *ishell.Context) {
-	acc, err := accountFromHint(c.Args)
+	acc, _, err := accountFromHint(c.Args)
 
 	if err != nil {
 		c.Println(err)
@@ -199,7 +299,7 @@ func notFound(c *ishell.Context) {
 }
 
 func showPass(c *ishell.Context) {
-	acc, err := accountFromHint(c.Args)
+	acc, _, err := accountFromHint(c.Args)
 
 	if err != nil {
 		c.Println(err)
@@ -217,20 +317,18 @@ func showPass(c *ishell.Context) {
 }
 
 
-func accountFromHint(args []string) (acc *Account, err error) {
+func accountFromHint(args []string) (acc *Account, idx int, err error) {
 	if len(args) == 0 {
 		if matches.Length() == 1 {
-			acc, err = matches.AccountAt(0)
+			acc, idx, err = matches.AccountAt(0)
 		}else{
 			err = errors.New("missing account info")
 		}
 		return
 	}
 
-	var idx int
-
 	if idx, err = strconv.Atoi(args[0]); err == nil {
-	   acc, err = matches.AccountAt(idx)
+		acc, idx, err = matches.AccountAt(idx)
 	}else if idx, err = accounts.FindOne(strings.Join(args, " ")); err == nil {
 		matches.Clear()
 		matches.Append(idx)
