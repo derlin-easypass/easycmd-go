@@ -132,6 +132,19 @@ func (accs Accounts) ListEmpty(s string) {
 	}
 }
 
+/* ======= get prop */
+
+func (acc Acount) GetProp(field string) (string, error) {
+	switch field {
+		case "name": return acc.Name
+		case "email": return acc.Email
+		case "pseudo": return acc.Pseudo
+		case "pass": return acc.Password
+		case "notes": return acc.Notes
+		default: return errors.New("unknown field " + field) 
+	}
+}
+
 
 /* ======= find in account */
 
@@ -156,14 +169,8 @@ func (acc Account) FindNote(s string) bool {
 }
 
 func (acc Account) IsEmpty(field string) bool {
-	switch field {
-		case "name": return acc.Name == ""
-		case "email": return acc.Email == ""
-		case "pseudo": return acc.Pseudo == ""
-		case "pass": return acc.Password == ""
-		case "notes": return acc.Notes == ""
-		default: return false 
-	}
+	value, err := acc.GetProp(field)
+	return err != nil && value == ""
 }
 
 /* ======= sanitize account */
