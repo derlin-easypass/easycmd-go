@@ -38,9 +38,8 @@ func LoadAccounts(path string, pass string) error {
 	return nil	
 }
 
-func NewAccounts(path string, password string) Accounts {
-	accounts := make(Accounts, 0)
-	return accounts
+func NewAccounts(path string, password string) {
+	accounts = make(Accounts, 0)
 }
 
 func (acc Accounts) SaveAccounts(path string, password string) error {

@@ -43,8 +43,9 @@ func (lm *LastMatches) AccountAt(idx int) (*Account, int, error) {
 
 func (lm *LastMatches) Print() {
 
-	var buffer bytes.Buffer
+	shell.Println(matches.Length(), "accounts.")
 
+	var buffer bytes.Buffer
 	for idx, accIdx := range *matches {
 		 buffer.WriteString(fmt.Sprintf("  [%d]: %s\n", idx, accounts[accIdx].Name))
 	}

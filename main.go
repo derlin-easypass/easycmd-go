@@ -18,9 +18,6 @@ func main(){
     // by default, new shell includes 'exit', 'help' and 'clear' commands.
     shell = ishell.New()
 
-    // display welcome info.
-    shell.Println("EasyCmd GO")
-
     shell.AddCmd(&ishell.Cmd{
         Name: "edit",
         Help: "edit account",
@@ -101,12 +98,18 @@ func main(){
 	listCmd.AddCmd(listEmptyCmd)
     shell.AddCmd(listCmd)
 
-
     shell.NotFound(notFound)
 
     load()
     // run shell
-    shell.Run()
+    // when started with "exit" as first argument, assume non-interactive execution
+	if len(remainingArgs) > 1 && remainingArgs[0] == "exit" {
+	    shell.Process(remainingArgs[1:]...)
+	} else {	
+	    // start shell
+	    shell.SetPrompt("\x1b[33measypass>\x1b[0m ") // yellow prompt
+	    shell.Run()
+	}
 }
 
 
@@ -120,9 +123,13 @@ func load(){
 		}
 	}
 
-	if err := LoadAccounts(sessionPath, password); err != nil {
-		shell.Println(err)
-		os.Exit(0)
+	if isNewSession {
+		NewAccounts(sessionPath, password)
+	}else{
+		if err := LoadAccounts(sessionPath, password); err != nil {
+			shell.Println(err)
+			os.Exit(0)
+		}
 	}
 }
 
@@ -250,7 +257,6 @@ func editAccount(c *ishell.Context) {
 
 func list(c *ishell.Context){
 	matches.Fill()
-	c.Println("accounts: (", matches.Length(), ")")
 	matches.Print()
 }
 
