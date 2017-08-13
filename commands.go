@@ -231,7 +231,7 @@ func deleteAccount(c *ishell.Context) {
     	accounts = append(accounts[:idx], accounts[idx+1:]...)
     	err := accounts.SaveAccounts(sessionPath, password)
     	if err == nil {
-	    	matches.Clear()
+	    	matches.RemoveIdx(idx)
     		c.Println("saved.")
     	}else{
     		c.Println(err)
@@ -243,21 +243,26 @@ func deleteAccount(c *ishell.Context) {
 
 // ========= copying
 
-func copyPass(c *ishell.Context) {
+func copyProp(c *ishell.Context, field string) {
 	acc, _, err := accountFromHint(c.Args)
+	if err != nil {
+		c.Println(err)
+		return 
+	}
+
+	value, err := acc.GetProp(field)
 
 	if err != nil {
 		c.Println(err)
-	}else if (*acc).Password == "" {
-		c.Println("empty password.")
+	}else if value == "" {
+		c.Printf("empty %s.\n", field)
 	}else{
-		if err = clipboard.WriteAll((*acc).Password); err != nil {
+		if err = clipboard.WriteAll(value); err != nil {
 			c.Println(err)
 		}else{
-			c.Println("Copied password from '", (*acc).Name, "' to clipboard.")
+			c.Printf("Copied %s from '%s' to clipboard.\n", field, (*acc).Name)
 		}
-	}
-	
+	}	
 }
 
 // ========= utils

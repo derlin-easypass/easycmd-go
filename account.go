@@ -85,19 +85,19 @@ func (acc Accounts) LoadJson(jsonPath string) (int,error) {
 
 func (accs Accounts) FindIn(field string, s string){
 	switch field {
-		case "name": accs.FindFunc(Account.FindName, s)
-		case "email": accs.FindFunc(Account.FindEmail, s)
-		case "pseudo": accs.FindFunc(Account.FindPseudo, s)
-		case "notes": accs.FindFunc(Account.FindNote, s)
-		default: accs.FindFunc(Account.FindAny, s) 
+		case "name": accs.FindFunc((*Account).FindName, s)
+		case "email": accs.FindFunc((*Account).FindEmail, s)
+		case "pseudo": accs.FindFunc((*Account).FindPseudo, s)
+		case "notes": accs.FindFunc((*Account).FindNote, s)
+		default: accs.FindFunc((*Account).FindAny, s) 
 	}
 }
 
 
-func (accs Accounts) FindFunc(f func(acc Account, s string) bool, s string) {
+func (accs Accounts) FindFunc(f func(acc *Account, s string) bool, s string) {
 	matches.Clear()
 	for idx, acc := range(accs) {
-		if f(acc, s) {
+		if f(&acc, s) {
 			matches.Append(idx)
 		}
 	}
@@ -108,7 +108,7 @@ func (accs Accounts) FindOne(s string) (int, error) {
 	err := errors.New("Ambiguous account.")
 
 	for idx, acc := range(accs) {
-		if acc.FindName(s) {
+		if (&acc).FindName(s) {
 			if result < 0 {
 				result = idx
 			}else{
@@ -126,7 +126,7 @@ func (accs Accounts) FindOne(s string) (int, error) {
 func (accs Accounts) ListEmpty(s string) {
 	matches.Clear()
 	for idx, acc := range(accs) {
-		if acc.IsEmpty(s) {
+		if (&acc).IsEmpty(s) {
 			matches.Append(idx)
 		}
 	}
@@ -134,41 +134,42 @@ func (accs Accounts) ListEmpty(s string) {
 
 /* ======= get prop */
 
-func (acc Acount) GetProp(field string) (string, error) {
+func (acc *Account) GetProp(field string) (string, error) {
 	switch field {
-		case "name": return acc.Name
-		case "email": return acc.Email
-		case "pseudo": return acc.Pseudo
-		case "pass": return acc.Password
-		case "notes": return acc.Notes
-		default: return errors.New("unknown field " + field) 
+		case "name": return (*acc).Name, nil
+		case "email": return (*acc).Email, nil
+		case "pseudo": return (*acc).Pseudo, nil
+		case "password": return (*acc).Password, nil
+		case "pass": return (*acc).Password, nil
+		case "notes": return (*acc).Notes, nil
+		default: return "", errors.New("unknown field " + field) 
 	}
 }
 
 
 /* ======= find in account */
 
-func (acc Account) FindAny(s string) bool {
+func (acc *Account) FindAny(s string) bool {
 	return acc.FindName(s) || acc.FindPseudo(s) || acc.FindEmail(s) || acc.FindNote(s)
 }
 
-func (acc Account) FindName(s string) bool {
+func (acc *Account) FindName(s string) bool {
 	return strings.Contains(strings.ToLower(acc.Name), s) 
 }
 
-func (acc Account) FindPseudo(s string) bool {
+func (acc *Account) FindPseudo(s string) bool {
 	return strings.Contains(strings.ToLower(acc.Pseudo), s) 
 }
 
-func (acc Account) FindEmail(s string) bool {
+func (acc *Account) FindEmail(s string) bool {
 	return strings.Contains(strings.ToLower(acc.Email), s) 
 }
 
-func (acc Account) FindNote(s string) bool {
+func (acc *Account) FindNote(s string) bool {
 	return strings.Contains(strings.ToLower(acc.Notes), s) 
 }
 
-func (acc Account) IsEmpty(field string) bool {
+func (acc *Account) IsEmpty(field string) bool {
 	value, err := acc.GetProp(field)
 	return err != nil && value == ""
 }

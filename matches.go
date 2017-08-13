@@ -6,6 +6,8 @@ import (
 	"errors"
 )
 
+const notAssigned = -1
+
 type LastMatches []int
 
 var matches *LastMatches
@@ -36,21 +38,36 @@ func (lm *LastMatches) Length() int {
 
 func (lm *LastMatches) AccountAt(idx int) (*Account, int, error) {
 	if idx >= 0 && idx < matches.Length() {
-		return &accounts[(*lm)[idx]], (*lm)[idx], nil 
+		accountIdx := (*lm)[idx]
+		if accountIdx >= 0 && accountIdx < len(accounts) {
+			return &accounts[(*lm)[idx]], (*lm)[idx], nil 
+		}
 	}
 	return nil, -1, errors.New("index out of range.")
 }
 
+func (lm *LastMatches) RemoveIdx(idx int) {
+	for i, val := range (*lm) {
+		if val == idx {
+			shell.Printf("making %d unassigned.\n", i)
+			(*lm)[i] = notAssigned
+			return
+		}
+	}
+}
+
 func (lm *LastMatches) Print() {
 
-	shell.Println(matches.Length(), "accounts.")
+	shell.Println(lm.Length(), "accounts.")
 
 	var buffer bytes.Buffer
-	for idx, accIdx := range *matches {
-		 buffer.WriteString(fmt.Sprintf("  [%d]: %s\n", idx, accounts[accIdx].Name))
+	for idx, accIdx := range *lm {
+		if accIdx != notAssigned {
+			buffer.WriteString(fmt.Sprintf("  [%d]: %s\n", idx, accounts[accIdx].Name))
+		}
 	}
 
-	if matches.Length() > 30 {
+	if lm.Length() > 30 {
 		shell.ShowPaged(buffer.String())
 	}else{
 		shell.Println(buffer.String())

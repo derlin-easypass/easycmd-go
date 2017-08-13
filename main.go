@@ -38,10 +38,26 @@ func main(){
         Func: deleteAccount,
     })
 
+    copyCmd := &ishell.Cmd{
+        Name: "copy",
+        Help: "copy a property to the clipboard",
+    }
+    for _, field := range([]string{"name", "pseudo", "email", "pass", "notes"}) {
+    	createFunc := func (field string) func(c *ishell.Context) {
+			return func(c *ishell.Context) { copyProp(c, field) }
+		}
+		copyCmd.AddCmd(&ishell.Cmd{
+			Name: field,
+			Help: "copy " + field + " to clipboard",
+			Func: createFunc(field),
+		})
+	}
+    shell.AddCmd(copyCmd)
+
     shell.AddCmd(&ishell.Cmd{
         Name: "pass",
         Help: "copy pass",
-        Func: copyPass,
+        Func: func(c *ishell.Context) { copyProp(c, "password") },
     })
 
     shell.AddCmd(&ishell.Cmd{
