@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+const defaultPrompt = "\x1b[33measypass>\x1b[0m "
 
 var shell *ishell.Shell
 
@@ -131,7 +132,7 @@ func main(){
 	    shell.Process(remainingArgs[1:]...)
 	} else {	
 	    // start shell
-	    shell.SetPrompt("\x1b[33measypass>\x1b[0m ") // yellow prompt
+	    shell.SetPrompt(defaultPrompt) // yellow prompt
 	    shell.Run()
 	}
 }

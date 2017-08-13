@@ -179,20 +179,21 @@ func editAccount(c *ishell.Context) {
 		return
 	}
 	newAcc := Account{}
-    c.Println("  Name: ")
+    shell.SetPrompt("  Name>")
     newAcc.Name = c.ReadLineWithDefault((*acc).Name)
     if name := strings.TrimSpace(newAcc.Name); name == "" {
     	c.Println("empty name is not allowed")
     	return
     }
-    c.Println("  Pseudo: ")
+    shell.SetPrompt("  Pseudo>")
     newAcc.Pseudo = c.ReadLineWithDefault((*acc).Pseudo)
-    c.Println("  Email: ")
+    shell.SetPrompt("  Email>")
     newAcc.Email = c.ReadLineWithDefault((*acc).Email)
-    c.Print("  Password: ")
+    shell.Print("  Password>")
     newAcc.Password = c.ReadPassword()  
-    c.Println("Notes")
+    shell.SetPrompt("  Notes>")
     newAcc.Notes = c.ReadLineWithDefault((*acc).Notes)
+    shell.SetPrompt(defaultPrompt)
 
     c.Print("Saving ? [y|n]")
     if ok := c.ReadLine(); ok == "y" {
