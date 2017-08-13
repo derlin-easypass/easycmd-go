@@ -9,6 +9,76 @@ import (
 	"errors"
 )
 
+// ========= listing
+
+func list(c *ishell.Context){
+	matches.Fill()
+	matches.Print()
+}
+
+func listMatches(c *ishell.Context){
+	c.Println("matches: ")
+	matches.Print()
+}
+
+func listEmpty(c *ishell.Context, field string){
+	accounts.ListEmpty(field)
+	matches.Print()
+}
+
+// ========= finding
+
+func find(c *ishell.Context, field string){
+	if len(c.Args) == 0 {
+		list(c)
+
+	}else {
+		search := strings.Join(c.Args, " ")
+		c.Println("searching for '" + search + "' in field " + field)
+		accounts.FindIn(field, search)
+		matches.Print()
+	}
+}
+
+func findAny(c *ishell.Context){
+	find(c, "")
+}
+
+// ========= showing
+
+
+func showDetails(c *ishell.Context) {
+	acc, _, err := accountFromHint(c.Args)
+
+	if err != nil {
+		c.Println(err)
+	}else{
+		c.Println("  Name:   ", (*acc).Name)
+		c.Println("  Pseudo: ", (*acc).Pseudo)
+		c.Println("  Email:  ", (*acc).Email)
+		c.Println("  Notes:  ", (*acc).Notes)
+	}
+}
+
+func showPass(c *ishell.Context) {
+	acc, _, err := accountFromHint(c.Args)
+
+	if err != nil {
+		c.Println(err)
+	}else if (*acc).Password == "" {
+		c.Println("empty password.")
+	}else{
+		c.Print("Pass: ", (*acc).Password)
+		c.ReadLine()
+		// put cursor one line up
+		c.Print("\033[1A")
+		// clear from the cursor to the end of the screen
+		c.Print("\033[0J")
+		c.Println()
+	}
+}
+
+// ========= dumpimg
 
 func dumpClear(c *ishell.Context) {
 	var dumpPath string
@@ -40,46 +110,7 @@ func dumpClear(c *ishell.Context) {
 
 }
 
-func copyPass(c *ishell.Context) {
-	acc, _, err := accountFromHint(c.Args)
-
-	if err != nil {
-		c.Println(err)
-	}else if (*acc).Password == "" {
-		c.Println("empty password.")
-	}else{
-		if err = clipboard.WriteAll((*acc).Password); err != nil {
-			c.Println(err)
-		}else{
-			c.Println("Copied password from '", (*acc).Name, "' to clipboard.")
-		}
-	}
-	
-}
-
-func deleteAccount(c *ishell.Context) {
-	acc, idx, err := accountFromHint(c.Args)
-	if err != nil {
-		c.Println(err)
-		return
-	}
-
-	c.Print("delete account '", (*acc).Name, "' at index ", idx, "? [y|n] ")
-	if ok := c.ReadLine(); ok == "y" {
-    	accounts = append(accounts[:idx], accounts[idx+1:]...)
-    	err := accounts.SaveAccounts(sessionPath, password)
-    	if err == nil {
-	    	matches.Clear()
-    		c.Println("saved.")
-    	}else{
-    		c.Println(err)
-    	}
-    }else{
-    	c.Println("canceled.")
-    }
-
-}
-
+// ========= manipulating one account: add edit delete
 
 func addAccount(c *ishell.Context) {
 	var acc Account
@@ -187,56 +218,32 @@ func editAccount(c *ishell.Context) {
     }
 }
 
-func list(c *ishell.Context){
-	matches.Fill()
-	matches.Print()
-}
 
-func listMatches(c *ishell.Context){
-	c.Println("matches: ")
-	matches.Print()
-}
-
-func listEmpty(c *ishell.Context, field string){
-	accounts.ListEmpty(field)
-	matches.Print()
-}
-
-func find(c *ishell.Context, field string){
-	if len(c.Args) == 0 {
-		list(c)
-
-	}else {
-		search := strings.Join(c.Args, " ")
-		c.Println("searching for '" + search + "' in field " + field)
-		accounts.FindIn(field, search)
-		matches.Print()
-	}
-}
-
-func findAny(c *ishell.Context){
-	find(c, "")
-}
-
-func showDetails(c *ishell.Context) {
-	acc, _, err := accountFromHint(c.Args)
-
+func deleteAccount(c *ishell.Context) {
+	acc, idx, err := accountFromHint(c.Args)
 	if err != nil {
 		c.Println(err)
-	}else{
-		c.Println("  Name:   ", (*acc).Name)
-		c.Println("  Pseudo: ", (*acc).Pseudo)
-		c.Println("  Email:  ", (*acc).Email)
-		c.Println("  Notes:  ", (*acc).Notes)
+		return
 	}
+
+	c.Print("delete account '", (*acc).Name, "' at index ", idx, "? [y|n] ")
+	if ok := c.ReadLine(); ok == "y" {
+    	accounts = append(accounts[:idx], accounts[idx+1:]...)
+    	err := accounts.SaveAccounts(sessionPath, password)
+    	if err == nil {
+	    	matches.Clear()
+    		c.Println("saved.")
+    	}else{
+    		c.Println(err)
+    	}
+    }else{
+    	c.Println("canceled.")
+    }
 }
 
-func notFound(c *ishell.Context) {
-	c.Println("not command. Assuming find...")
-	findAny(c)
-}
+// ========= copying
 
-func showPass(c *ishell.Context) {
+func copyPass(c *ishell.Context) {
 	acc, _, err := accountFromHint(c.Args)
 
 	if err != nil {
@@ -244,16 +251,21 @@ func showPass(c *ishell.Context) {
 	}else if (*acc).Password == "" {
 		c.Println("empty password.")
 	}else{
-		c.Print("Pass: ", (*acc).Password)
-		c.ReadLine()
-		// put cursor one line up
-		c.Print("\033[1A")
-		// clear from the cursor to the end of the screen
-		c.Print("\033[0J")
-		c.Println()
+		if err = clipboard.WriteAll((*acc).Password); err != nil {
+			c.Println(err)
+		}else{
+			c.Println("Copied password from '", (*acc).Name, "' to clipboard.")
+		}
 	}
+	
 }
 
+// ========= utils
+
+func notFound(c *ishell.Context) {
+	c.Println("not command. Assuming find...")
+	findAny(c)
+}
 
 func accountFromHint(args []string) (acc *Account, idx int, err error) {
 	if len(args) == 0 {
