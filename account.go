@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 	"errors"
+	"io/ioutil"
+	"bytes"
 )
 
 type Account struct {
@@ -43,12 +45,41 @@ func NewAccounts(path string, password string) {
 }
 
 func (acc Accounts) SaveAccounts(path string, password string) error {
-		// the content has been generated with:
+	// the content has been generated with:
 	//  openssl enc -aes-128-cbc -pass pass:essai -salt -base6
 	b, _ := json.Marshal(acc)
 	o := NewOpenSSL()
 	return o.EncryptFile(password, string(b), path)
 }
+
+func (acc Accounts) DumpAccounts(path string) error {
+	b, err := json.Marshal(acc)
+	if err != nil {
+		return err
+	}
+
+	var bindent bytes.Buffer 
+	if err := json.Indent(&bindent, b, "", "  "); err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(path, bindent.Bytes(),  0644)
+}
+
+
+func (acc Accounts) LoadJson(jsonPath string) (int,error) {
+	file, err := ioutil.ReadFile(jsonPath)
+    if err != nil {
+        return 0, err
+    }
+    var newAccounts Accounts
+    if err := json.Unmarshal(file, &newAccounts); err != nil {
+    	return 0, err
+    }
+    accounts = append(accounts, newAccounts...)
+    return len(newAccounts), nil
+}
+
 
 /* ======= find in accounts */
 

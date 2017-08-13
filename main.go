@@ -24,11 +24,17 @@ func main(){
         Func: editAccount,
     })
 
-    shell.AddCmd(&ishell.Cmd{
+    addCmd := &ishell.Cmd{
         Name: "add",
         Help: "add a new account",
         Func: addAccount,
+    }
+    addCmd.AddCmd(&ishell.Cmd{
+    	Name: "json",
+    	Help: "add accounts from a json file",
+    	Func: addJson,
     })
+    shell.AddCmd(addCmd)
 
      shell.AddCmd(&ishell.Cmd{
         Name: "delete",
@@ -40,6 +46,12 @@ func main(){
         Name: "pass",
         Help: "copy pass",
         Func: copyPass,
+    })
+
+    shell.AddCmd(&ishell.Cmd{
+        Name: "dump",
+        Help: "dump to file. ",
+        Func: dumpClear,
     })
 
     findCmd := &ishell.Cmd{
@@ -124,7 +136,22 @@ func load(){
 	}
 
 	if isNewSession {
+		// create a new session
 		NewAccounts(sessionPath, password)
+		// if a json file is specified, try to load accounts from it
+
+		if jsonPath != "" {
+			var err error
+			var cnt int
+			if cnt, err = accounts.LoadJson(jsonPath); err != nil {
+				shell.Println(err)
+			}else{
+				// save with the json data
+				accounts.SaveAccounts(sessionPath, password)
+				shell.Printf("loaded %d accounts.\n", cnt)
+			}
+		}
+
 	}else{
 		if err := LoadAccounts(sessionPath, password); err != nil {
 			shell.Println(err)
@@ -133,6 +160,35 @@ func load(){
 	}
 }
 
+func dumpClear(c *ishell.Context) {
+	var dumpPath string
+	if len(c.Args) > 0 {
+		dumpPath = c.Args[0]
+	}else{
+		c.Print("Output File: ")
+		dumpPath = c.ReadLine()
+	}
+
+	if dumpPath == "" {
+		c.Println("Missing mandatory output path.")
+		return
+	}
+
+	if _, err := os.Stat(dumpPath); !os.IsNotExist(err) {
+		c.Printf("File '%s' already exists. Override ? [y|n] ", dumpPath)
+		if ok := c.ReadLine(); ok != "y" {
+			c.Println("canceled.")
+			return
+		}
+	}
+
+	if err := accounts.DumpAccounts(dumpPath); err != nil {
+		c.Println(err)
+	}else{
+		c.Println("dumped to ", dumpPath)
+	}
+
+}
 
 func copyPass(c *ishell.Context) {
 	acc, _, err := accountFromHint(c.Args)
@@ -207,6 +263,32 @@ func addAccount(c *ishell.Context) {
     }else{
     	c.Println("canceled.")
     }
+}
+
+func addJson(c *ishell.Context){
+	var loadPath string
+	if len(c.Args) > 0 {
+		loadPath = c.Args[0]
+	}else{
+		c.Print("Json File: ")
+		loadPath = c.ReadLine()
+	}
+
+	if loadPath == "" {
+		c.Println("Missing mandatory input path.")
+		return
+	}
+
+	var err error
+	var cnt int
+	if cnt, err = accounts.LoadJson(loadPath); err != nil {
+		shell.Println(err)
+	}else{
+		// save with the json data
+		accounts.SaveAccounts(sessionPath, password)
+		shell.Printf("loaded %d accounts.\n", cnt)
+	}
+
 }
 
 func editAccount(c *ishell.Context) {
