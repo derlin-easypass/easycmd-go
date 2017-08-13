@@ -171,7 +171,7 @@ func (acc *Account) FindNote(s string) bool {
 
 func (acc *Account) IsEmpty(field string) bool {
 	value, err := acc.GetProp(field)
-	return err != nil && value == ""
+	return err == nil && value == ""
 }
 
 /* ======= sanitize account */
