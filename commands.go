@@ -2,7 +2,7 @@ package main
 
 import (
 	"strings"
-	"github.com/abiosoft/ishell"
+	"github.com/derlin/ishell" // TODO: keep track of changes in "github.com/abiosoft/ishell"
 	"github.com/atotto/clipboard"
 	"os"
 	"strconv"

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/abiosoft/ishell"
+	"github.com/derlin/ishell" //"github.com/abiosoft/ishell"
 	"os"
 )
 
