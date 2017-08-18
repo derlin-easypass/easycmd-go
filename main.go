@@ -9,6 +9,11 @@ const defaultPrompt = "\x1b[33measypass>\x1b[0m "
 
 var shell *ishell.Shell
 
+func accountsCompleter(args []string) []string {
+    return accounts.Names()
+}
+
+
 func main(){
 
     // create new shell.
@@ -19,6 +24,7 @@ func main(){
         Name: "edit",
         Help: "edit account",
         Func: editAccount,
+        Completer: accountsCompleter,
     })
 
     addCmd := &ishell.Cmd{
@@ -37,11 +43,13 @@ func main(){
         Name: "delete",
         Help: "delete an account",
         Func: deleteAccount,
+        Completer: accountsCompleter,
     })
 
     copyCmd := &ishell.Cmd{
         Name: "copy",
         Help: "copy a property to the clipboard",
+        Completer: accountsCompleter,
     }
     for _, field := range([]string{"name", "pseudo", "email", "pass", "notes"}) {
     	createFunc := func (field string) func(c *ishell.Context) {
@@ -51,6 +59,7 @@ func main(){
 			Name: field,
 			Help: "copy " + field + " to clipboard",
 			Func: createFunc(field),
+            Completer: accountsCompleter,
 		})
 	}
     shell.AddCmd(copyCmd)
@@ -88,11 +97,13 @@ func main(){
         Name: "show",
         Help: "show details about an account",
         Func: showDetails,
+        Completer: accountsCompleter,
     }
     showCmd.AddCmd(&ishell.Cmd{
         Name: "pass",
         Help: "show pass",
         Func: showPass,
+        Completer: accountsCompleter,
     })
     shell.AddCmd(showCmd)
 

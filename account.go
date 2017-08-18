@@ -20,6 +20,13 @@ type Accounts []Account
 
 var accounts Accounts
 
+func (accs Accounts) Names() []string {
+	names := make([]string, len(accs))
+	for i, acc := range accs {
+		names[i] = acc.Name
+	}
+	return names
+}
 
 
 /* =======load/save */
