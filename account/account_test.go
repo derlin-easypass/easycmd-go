@@ -24,7 +24,8 @@ func createDummyAccount() *Account {
 
 
 func TestLoad(t *testing.T){
-	accounts, err := LoadAccounts("test.json.enc", "test")
+	creds := &Creds{"test.json.enc", "test"}
+	accounts, err := LoadAccounts(creds)
 	assert.Nil(t, err, "LoadAccounts failed with an error")
 	assert.Equal(t, 3, len(accounts), "not 3 accounts")
 	assert.Equal(t, "easypass", accounts[0].Pseudo, "sort not ok.")
@@ -94,7 +95,6 @@ func TestFindIn(t *testing.T){
 }
 
 func TestImportExport(t *testing.T) {
-
 	// create temp file
 	tmpfile, err := ioutil.TempFile("", "accs-test")
 	if err != nil {
@@ -117,5 +117,27 @@ func TestImportExport(t *testing.T) {
 	for i, a := range newAccs {
 		assert.Equal(t, accs[i].Name, a.Name, "import: values not equal")
 	}
-
 }
+
+	func TestSaveLoad(t *testing.T) {
+		// create temp file
+		tmpfile, err := ioutil.TempFile("", "accs-test")
+		if err != nil {
+			t.Error(err)
+		}
+		t.Logf("tmpfile is: %s\n", tmpfile.Name())
+		defer os.Remove(tmpfile.Name()) // clean up
+
+		creds := &Creds{Path: tmpfile.Name(), Password: "test-lala"}
+		// save
+		accs := createAccounts()
+
+		err = accs.Save(creds)
+		assert.Nil(t, err, "save failed.")
+
+		// import
+		newAccs, err := LoadAccounts(creds)
+		assert.Nil(t, err, "import threw error.")
+		assert.Equal(t, 3, len(newAccs), "load failed.") // null should not be serialized, so len = 3 and not 4
+
+	}

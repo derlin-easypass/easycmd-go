@@ -34,11 +34,16 @@ func (a Accounts) Swap(i, j int)    { a[i], a[j] = a[j], a[i] }
 func (a Accounts) Less(i, j int) bool  { return a[i].Name < a[j].Name }
 
 
+type Creds struct {
+	Path		string 
+	Password 	string
+}
+
 /* =======load/save */
 
-func LoadAccounts(path string, pass string) (Accounts, error) {
+func LoadAccounts(creds *Creds) (Accounts, error) {
 	var accounts Accounts
-	content, err := crypto.DecryptFile(pass, path); 
+	content, err := crypto.DecryptFile(creds.Password, creds.Path); 
 	if err != nil {
 		return nil, err 
 	}
@@ -50,10 +55,10 @@ func LoadAccounts(path string, pass string) (Accounts, error) {
 	return accounts, nil	
 }
 
-func (accs Accounts) Save(path string, password string) error {
+func (accs Accounts) Save(creds *Creds) error {
 	bs, err := accs.toJson()
 	if err == nil {
-		return crypto.EncryptFile(password, string(bs), path)
+		return crypto.EncryptFile(creds.Password, string(bs), creds.Path)
 	}
 	return err
 }
@@ -170,7 +175,7 @@ func (acc *Account) FindIn(field string, search string) bool {
 	if field == "" { // fall back
 		return acc.Find(search)
 	}
-	
+
 	if value, err := acc.GetProp(field); err == nil {
 		return strings.Contains(strings.ToLower(value), strings.ToLower(search))
 	}
