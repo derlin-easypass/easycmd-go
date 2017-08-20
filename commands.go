@@ -16,10 +16,6 @@ func list(c *ishell.Context){
 	matches.Print()
 }
 
-func listMatches(c *ishell.Context){
-	c.Println("matches: ")
-	matches.Print()
-}
 
 func listEmpty(c *ishell.Context, field string){
 	accounts.ListEmpty(field)
@@ -132,7 +128,7 @@ func addAccount(c *ishell.Context) {
      c.Print("Saving ? [y|n]")
     if ok := c.ReadLine(); ok == "y" {
     	(&acc).Sanitize()
-    	accounts = append(accounts, acc)
+    	accounts = append(accounts, &acc)
     	err := accounts.SaveAccounts(sessionPath, password)
     	if err == nil {
 	    	matches.Clear()
@@ -288,7 +284,7 @@ func accountFromHint(args []string) (acc *Account, idx int, err error) {
 	}else if idx, err = accounts.FindOne(strings.Join(args, " ")); err == nil {
 		matches.Clear()
 		matches.Append(idx)
-		acc = &accounts[idx]
+		acc = accounts[idx]
 	}
 
 	return 

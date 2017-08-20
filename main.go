@@ -11,6 +11,7 @@ var shell *ishell.Shell
 
 func main(){
 
+    ReadCmd()
     // create new shell.
     // by default, new shell includes 'exit', 'help' and 'clear' commands.
     shell = ishell.New()
@@ -101,11 +102,6 @@ func main(){
         Help: "list accounts",
         Func: list,
     }
-    listCmd.AddCmd(&ishell.Cmd{
-        Name: "matches",
-        Help: "list matches only",
-        Func: listMatches,
-    })
     listEmptyCmd := &ishell.Cmd{
         Name: "empty",
         Help: "list accounts with empty property",

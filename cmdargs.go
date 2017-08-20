@@ -13,7 +13,7 @@ var jsonPath string
 
 var remainingArgs []string
 
-func init() {
+func ReadCmd() {
 	flag.StringVar(&sessionPath, "path", "", "path to the session file")
 	flag.StringVar(&password, "pass", "", "password (not recommended !)")	
 	flag.StringVar(&jsonPath, "json", "", "Combined with '-new', load session from a json file, which will be encrypted to 'path'.")	

@@ -40,7 +40,7 @@ func (lm *LastMatches) AccountAt(idx int) (*Account, int, error) {
 	if idx >= 0 && idx < matches.Length() {
 		accountIdx := (*lm)[idx]
 		if accountIdx >= 0 && accountIdx < len(accounts) {
-			return &accounts[(*lm)[idx]], (*lm)[idx], nil 
+			return accounts[(*lm)[idx]], (*lm)[idx], nil 
 		}
 	}
 	return nil, -1, errors.New("index out of range.")

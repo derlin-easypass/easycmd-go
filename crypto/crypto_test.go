@@ -1,4 +1,4 @@
-package main 
+package crypto 
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -7,25 +7,23 @@ import (
 	"os"
 )
 
-var o *OpenSSL = NewOpenSSL()
-
 func TestDecryptString(t *testing.T){
 	// the content has been generated with:
 	// echo -n "it works perfectly" | openssl enc -aes-128-cbc -pass pass:essai -salt -base64
-	result, err := o.DecryptString(`essai`, `U2FsdGVkX1+byhH87dJhyoozSyunGV1EQn8qi2hP74kbKHBleEiYXa3dAYy2LkmU`)
+	result, err := DecryptString(`essai`, `U2FsdGVkX1+byhH87dJhyoozSyunGV1EQn8qi2hP74kbKHBleEiYXa3dAYy2LkmU`)
 	assert.Nil(t, err, "decryption failed")
 	assert.Equal(t, "it works perfectly", string(result), "content match.")
 }
 
 func TestDecryptFile(t *testing.T){	
 
-	result, err := o.DecryptFile(`essai`, "resources/test.txt.enc")
+	result, err := DecryptFile(`essai`, "test.txt.enc")
 	assert.Nil(t, err, "decryption failed")
 	assert.Equal(t, "it works perfectly", string(result), "content match.")
 }
 
 func TestEncryptString(t *testing.T){
-	result, err := o.EncryptString(`essai`, `it works perfectly`)
+	result, err := EncryptString(`essai`, `it works perfectly`)
 	assert.Nil(t, err, "encryption ok.")
 	t.Log(string(result))
 }
@@ -40,11 +38,11 @@ func TestEncryptFile(t *testing.T){
 	t.Logf("tmpfile is: %s\n", tmpfile.Name())
 	defer os.Remove(tmpfile.Name()) // clean up
 
-	if err := o.EncryptFile("essai", string(content), tmpfile.Name()); err != nil {
+	if err := EncryptFile("essai", string(content), tmpfile.Name()); err != nil {
 		t.Error(err)
 	}
 
-	result, err := o.DecryptFile(`essai`, tmpfile.Name())
+	result, err := DecryptFile(`essai`, tmpfile.Name())
 	assert.Nil(t, err, "decryption failed")
 	assert.Equal(t, content, result, "content match.")
 }
