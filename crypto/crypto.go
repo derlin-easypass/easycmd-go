@@ -2,11 +2,11 @@ package crypto
 
 // This code is taken from https://github.com/Luzifer/go-openssl and adapted to work
 // with aes-128-cbc instead of a 256 bytes key.
-// There is also this blogpost https://dequeue.blogspot.ch/2014/11/decrypting-something-encrypted-with.html 
+// There is also this blogpost https://dequeue.blogspot.ch/2014/11/decrypting-something-encrypted-with.html
 // that was very interesting.
 //
 // Those methods are compatible with the openssl commandline. To encrypt, use:
-// 
+//
 //     openssl enc -aes-128-cbc -pass pass:PASSWORD -salt -base64
 //
 // To decrypt, put the content into a file and use:
@@ -31,15 +31,13 @@ import (
 // data can also get decrypted using OpenSSL CLI.
 // Code from http://dequeue.blogspot.de/2014/11/decrypting-something-encrypted-with.html
 
-
 // OpenSSL salt is always this string + 8 bytes of actual salt
-const openSSLSaltHeader =  "Salted__"
+const openSSLSaltHeader = "Salted__"
 
 type openSSLCreds struct {
 	key []byte
 	iv  []byte
 }
-
 
 func DecryptFile(passphrase, filepath string) ([]byte, error) {
 	dat, err := ioutil.ReadFile(filepath)
@@ -93,7 +91,7 @@ func EncryptFile(passphrase, plaintextString string, filepath string) error {
 		return err
 	}
 	// with openssl commandline, if in encrypted file after base64 line not new line you get error "error reading input file"
-	return ioutil.WriteFile(filepath, []byte(string(dat) + "\n"), 0644)
+	return ioutil.WriteFile(filepath, []byte(string(dat)+"\n"), 0644)
 }
 
 // EncryptString encrypts a string in a manner compatible to OpenSSL encryption

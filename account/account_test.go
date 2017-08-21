@@ -1,13 +1,12 @@
-package main
+package account
 
 import (
-	"github.com/stretchr/testify/assert"
-	"testing"
-	"io/ioutil"
 	"fmt"
+	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"os"
+	"testing"
 )
-
 
 func createAccounts() Accounts {
 	accs := make(Accounts, 4)
@@ -19,11 +18,10 @@ func createAccounts() Accounts {
 }
 
 func createDummyAccount() *Account {
-	return &Account{Name: Name, Pseudo: Pseudo, Password:Password, Email: Email, Notes:Notes}
+	return &Account{Name: Name, Pseudo: Pseudo, Password: Password, Email: Email, Notes: Notes}
 }
 
-
-func TestLoad(t *testing.T){
+func TestLoad(t *testing.T) {
 	creds := &Creds{"test.json.enc", "test"}
 	accounts, err := LoadAccounts(creds)
 	assert.Nil(t, err, "LoadAccounts failed with an error")
@@ -32,10 +30,10 @@ func TestLoad(t *testing.T){
 	assert.Equal(t, "stackoverflow", accounts[2].Name, "sort not ok.")
 }
 
-func TestFindEmpty(t *testing.T){
+func TestFindEmpty(t *testing.T) {
 	accs := createAccounts()
 
-	var results []int 
+	var results []int
 	results = accs.FindEmpty(Name)
 	assert.Equal(t, 0, len(results), "list empty failed.")
 	results = accs.FindEmpty(Pseudo)
@@ -47,7 +45,7 @@ func TestFindEmpty(t *testing.T){
 func TestGetProp(t *testing.T) {
 	acc := createDummyAccount()
 
-	for _, f := range []string{ Name, Pseudo, Password, Email, Notes } {
+	for _, f := range []string{Name, Pseudo, Password, Email, Notes} {
 		v, _ := acc.GetProp(f)
 		assert.Equal(t, f, v, fmt.Sprintf("get %s failed", f))
 	}
@@ -56,10 +54,10 @@ func TestGetProp(t *testing.T) {
 	assert.NotNil(t, err, "get prop lala returned a result")
 }
 
-func TestFindIn(t *testing.T){
+func TestFindIn(t *testing.T) {
 	accs := createAccounts()
 
-	var results []int 
+	var results []int
 	// find everywhere
 	results = accs.Find("test")
 	assert.Equal(t, 3, len(results), "find test everywhere failed.")
@@ -119,25 +117,25 @@ func TestImportExport(t *testing.T) {
 	}
 }
 
-	func TestSaveLoad(t *testing.T) {
-		// create temp file
-		tmpfile, err := ioutil.TempFile("", "accs-test")
-		if err != nil {
-			t.Error(err)
-		}
-		t.Logf("tmpfile is: %s\n", tmpfile.Name())
-		defer os.Remove(tmpfile.Name()) // clean up
-
-		creds := &Creds{Path: tmpfile.Name(), Password: "test-lala"}
-		// save
-		accs := createAccounts()
-
-		err = accs.Save(creds)
-		assert.Nil(t, err, "save failed.")
-
-		// import
-		newAccs, err := LoadAccounts(creds)
-		assert.Nil(t, err, "import threw error.")
-		assert.Equal(t, 3, len(newAccs), "load failed.") // null should not be serialized, so len = 3 and not 4
-
+func TestSaveLoad(t *testing.T) {
+	// create temp file
+	tmpfile, err := ioutil.TempFile("", "accs-test")
+	if err != nil {
+		t.Error(err)
 	}
+	t.Logf("tmpfile is: %s\n", tmpfile.Name())
+	defer os.Remove(tmpfile.Name()) // clean up
+
+	creds := &Creds{Path: tmpfile.Name(), Password: "test-lala"}
+	// save
+	accs := createAccounts()
+
+	err = accs.Save(creds)
+	assert.Nil(t, err, "save failed.")
+
+	// import
+	newAccs, err := LoadAccounts(creds)
+	assert.Nil(t, err, "import threw error.")
+	assert.Equal(t, 3, len(newAccs), "load failed.") // null should not be serialized, so len = 3 and not 4
+
+}

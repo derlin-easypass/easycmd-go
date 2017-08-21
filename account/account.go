@@ -1,58 +1,56 @@
-package main
+package account
 
 import (
-	"encoding/json"
-	"strings"
-	"fmt"
-	"io/ioutil"
 	"bytes"
-	"sort"
+	"encoding/json"
+	"fmt"
 	"github.com/derlin-easypass/easycmd-go/crypto"
+	"io/ioutil"
+	"sort"
+	"strings"
 )
 
 const (
-	Name = "name"
-	Pseudo = "pseudo"
-	Email = "email"
-	Notes = "notes"
+	Name     = "name"
+	Pseudo   = "pseudo"
+	Email    = "email"
+	Notes    = "notes"
 	Password = "password"
 )
 
 type Account struct {
 	Name     string `json:"name"`
 	Pseudo   string `json:"pseudo"`
-	Email 	 string `json:"email"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 	Notes    string `json:"notes"`
 }
 
 type Accounts []*Account
 
-
-func (a Accounts) Len() int   		{ return len(a) }
-func (a Accounts) Swap(i, j int)    { a[i], a[j] = a[j], a[i] }
-func (a Accounts) Less(i, j int) bool  { return a[i].Name < a[j].Name }
-
+func (a Accounts) Len() int           { return len(a) }
+func (a Accounts) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a Accounts) Less(i, j int) bool { return a[i].Name < a[j].Name }
 
 type Creds struct {
-	Path		string 
-	Password 	string
+	Path     string
+	Password string
 }
 
 /* =======load/save */
 
 func LoadAccounts(creds *Creds) (Accounts, error) {
 	var accounts Accounts
-	content, err := crypto.DecryptFile(creds.Password, creds.Path); 
+	content, err := crypto.DecryptFile(creds.Password, creds.Path)
 	if err != nil {
-		return nil, err 
+		return nil, err
 	}
 
 	if err := json.Unmarshal(content, &accounts); err != nil {
 		return nil, err
 	}
 	sort.Sort(accounts)
-	return accounts, nil	
+	return accounts, nil
 }
 
 func (accs Accounts) Save(creds *Creds) error {
@@ -65,14 +63,14 @@ func (accs Accounts) Save(creds *Creds) error {
 
 func Import(jsonPath string) (Accounts, error) {
 	file, err := ioutil.ReadFile(jsonPath)
-    if err != nil {
-        return nil, err
-    }
-    var accounts Accounts
-    if err := json.Unmarshal(file, &accounts); err != nil {
-    	return nil, err
-    }
-    return accounts, nil
+	if err != nil {
+		return nil, err
+	}
+	var accounts Accounts
+	if err := json.Unmarshal(file, &accounts); err != nil {
+		return nil, err
+	}
+	return accounts, nil
 }
 
 func (acc Accounts) Export(path string) error {
@@ -80,14 +78,14 @@ func (acc Accounts) Export(path string) error {
 	if err != nil {
 		return err
 	}
-	var bindent bytes.Buffer 
+	var bindent bytes.Buffer
 	if err := json.Indent(&bindent, b, "", "  "); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, bindent.Bytes(),  0644)
+	return ioutil.WriteFile(path, bindent.Bytes(), 0644)
 }
 
-func (accs Accounts) toJson() ([]byte, error){
+func (accs Accounts) toJson() ([]byte, error) {
 	// remove empty accounts
 	toMarshall := make(Accounts, 0)
 	for _, v := range accs {
@@ -99,7 +97,6 @@ func (accs Accounts) toJson() ([]byte, error){
 	return json.Marshal(toMarshall)
 }
 
-
 /* ======= find in accounts */
 
 func (accs Accounts) Find(s string) []int {
@@ -108,7 +105,7 @@ func (accs Accounts) Find(s string) []int {
 
 func (accs Accounts) FindIn(field string, s string) []int {
 	matches := make([]int, 0)
-	for idx, acc := range(accs) {
+	for idx, acc := range accs {
 		if acc != nil && acc.FindIn(field, s) {
 			matches = append(matches, idx)
 		}
@@ -116,16 +113,15 @@ func (accs Accounts) FindIn(field string, s string) []int {
 	return matches
 }
 
-
 func (accs Accounts) FindOne(s string) (int, error) {
 	result := -1
 	err := fmt.Errorf("Ambiguous account.")
 
-	for idx, acc := range(accs) {
+	for idx, acc := range accs {
 		if acc != nil && acc.FindIn(Name, s) {
 			if result < 0 {
 				result = idx
-			}else{
+			} else {
 				// more than one match. Throw an error
 				return -1, err
 			}
@@ -141,7 +137,7 @@ func (accs Accounts) FindOne(s string) (int, error) {
 
 func (accs Accounts) FindEmpty(field string) []int {
 	var results = make([]int, 0)
-	for idx, acc := range(accs) {
+	for idx, acc := range accs {
 		if acc != nil && acc.IsEmpty(field) {
 			results = append(results, idx)
 		}
@@ -153,16 +149,22 @@ func (accs Accounts) FindEmpty(field string) []int {
 
 func (acc *Account) GetProp(field string) (string, error) {
 	switch field {
-		case Name: return acc.Name, nil
-		case Email: return acc.Email, nil
-		case Pseudo: return acc.Pseudo, nil
-		case Password: return acc.Password, nil
-		case "pass": return acc.Password, nil
-		case Notes: return acc.Notes, nil
-		default: return "", fmt.Errorf("unknown field '%s'", field) 
+	case Name:
+		return acc.Name, nil
+	case Email:
+		return acc.Email, nil
+	case Pseudo:
+		return acc.Pseudo, nil
+	case Password:
+		return acc.Password, nil
+	case "pass":
+		return acc.Password, nil
+	case Notes:
+		return acc.Notes, nil
+	default:
+		return "", fmt.Errorf("unknown field '%s'", field)
 	}
 }
-
 
 /* ======= find in account */
 

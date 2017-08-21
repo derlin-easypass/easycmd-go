@@ -1,54 +1,50 @@
 package main
 
 import (
-	"strings"
-	"github.com/derlin/ishell" // TODO: keep track of changes in "github.com/abiosoft/ishell"
 	"github.com/atotto/clipboard"
+	"github.com/derlin-easypass/easycmd-go/account"
+	"github.com/derlin/ishell" // TODO: keep track of changes in "github.com/abiosoft/ishell"
 	"os"
 	"strconv"
-	"errors"
+	"strings"
 )
 
 // ========= listing
 
-func list(c *ishell.Context){
-	matches.Fill()
-	matches.Print()
-}
-
-
-func listEmpty(c *ishell.Context, field string){
-	accounts.ListEmpty(field)
-	matches.Print()
+func list(c *ishell.Context) {
+	printAll()
 }
 
 // ========= finding
 
-func find(c *ishell.Context, field string){
-	if len(c.Args) == 0 {
-		list(c)
-
-	}else {
-		search := strings.Join(c.Args, " ")
-		c.Println("searching for '" + search + "' in field " + field)
-		accounts.FindIn(field, search)
-		matches.Print()
-	}
-}
-
-func findAny(c *ishell.Context){
+func findAny(c *ishell.Context) {
 	find(c, "")
 }
 
-// ========= showing
+func find(c *ishell.Context, field string) {
+	if len(c.Args) == 0 {
+		list(c)
 
+	} else {
+		search := strings.Join(c.Args, " ")
+		matches := accounts.FindIn(field, search)
+		printMatches(matches)
+	}
+}
+
+func findEmpty(c *ishell.Context, field string) {
+	matches := accounts.FindEmpty(field)
+	printMatches(matches)
+}
+
+// ========= showing
 
 func showDetails(c *ishell.Context) {
 	acc, _, err := accountFromHint(c.Args)
 
 	if err != nil {
 		c.Println(err)
-	}else{
+	} else {
 		c.Println("  Name:   ", (*acc).Name)
 		c.Println("  Pseudo: ", (*acc).Pseudo)
 		c.Println("  Email:  ", (*acc).Email)
@@ -61,9 +57,9 @@ func showPass(c *ishell.Context) {
 
 	if err != nil {
 		c.Println(err)
-	}else if (*acc).Password == "" {
+	} else if (*acc).Password == "" {
 		c.Println("empty password.")
-	}else{
+	} else {
 		c.Print("Pass: ", (*acc).Password)
 		c.ReadLine()
 		// put cursor one line up
@@ -74,13 +70,40 @@ func showPass(c *ishell.Context) {
 	}
 }
 
-// ========= dumpimg
+// ========= import/export
 
-func dumpClear(c *ishell.Context) {
+func importAccounts(c *ishell.Context) {
+	var loadPath string
+	if len(c.Args) > 0 {
+		loadPath = c.Args[0]
+	} else {
+		c.Print("Json File: ")
+		loadPath = c.ReadLine()
+	}
+
+	if loadPath == "" {
+		c.Println("Missing mandatory input path.")
+		return
+	}
+
+	var err error
+	var newAccounts account.Accounts
+	if newAccounts, err = account.Import(loadPath); err != nil {
+		shell.Println(err)
+	} else {
+		// save with the json data
+		accounts = append(accounts, newAccounts...)
+		accounts.Save(creds)
+		shell.Printf("loaded %d accounts.\n", len(newAccounts))
+	}
+
+}
+
+func exportAccounts(c *ishell.Context) {
 	var dumpPath string
 	if len(c.Args) > 0 {
 		dumpPath = c.Args[0]
-	}else{
+	} else {
 		c.Print("Output File: ")
 		dumpPath = c.ReadLine()
 	}
@@ -98,9 +121,9 @@ func dumpClear(c *ishell.Context) {
 		}
 	}
 
-	if err := accounts.DumpAccounts(dumpPath); err != nil {
+	if err := accounts.Export(dumpPath); err != nil {
 		c.Println(err)
-	}else{
+	} else {
 		c.Println("dumped to ", dumpPath)
 	}
 
@@ -109,63 +132,37 @@ func dumpClear(c *ishell.Context) {
 // ========= manipulating one account: add edit delete
 
 func addAccount(c *ishell.Context) {
-	var acc Account
-    c.Print("  Name: ")
-    acc.Name = c.ReadLine()
-    if name := strings.TrimSpace(acc.Name); name == "" {
-    	c.Println("empty name is not allowed")
-    	return
-    }
-    c.Print("  Pseudo: ")
-    acc.Pseudo = c.ReadLine()
-    c.Print("  Email: ")
-    acc.Email = c.ReadLine()
-    c.Print("  Password: ")
-    acc.Password = c.ReadPassword()
-    c.Print("  Notes: ")
-    acc.Notes = c.ReadLine()
-    
-     c.Print("Saving ? [y|n]")
-    if ok := c.ReadLine(); ok == "y" {
-    	(&acc).Sanitize()
-    	accounts = append(accounts, &acc)
-    	err := accounts.SaveAccounts(sessionPath, password)
-    	if err == nil {
-	    	matches.Clear()
-    		matches.Append(len(accounts) -1)
-    		c.Println("saved.")
-    	}else{
-    		c.Println(err)
-    	}
-    }else{
-    	c.Println("canceled.")
-    }
-}
-
-func addJson(c *ishell.Context){
-	var loadPath string
-	if len(c.Args) > 0 {
-		loadPath = c.Args[0]
-	}else{
-		c.Print("Json File: ")
-		loadPath = c.ReadLine()
-	}
-
-	if loadPath == "" {
-		c.Println("Missing mandatory input path.")
+	var acc account.Account
+	c.Print("  Name: ")
+	acc.Name = c.ReadLine()
+	if name := strings.TrimSpace(acc.Name); name == "" {
+		c.Println("empty name is not allowed")
 		return
 	}
+	c.Print("  Pseudo: ")
+	acc.Pseudo = c.ReadLine()
+	c.Print("  Email: ")
+	acc.Email = c.ReadLine()
+	c.Print("  Password: ")
+	acc.Password = c.ReadPassword()
+	c.Print("  Notes: ")
+	acc.Notes = c.ReadLine()
 
-	var err error
-	var cnt int
-	if cnt, err = accounts.LoadJson(loadPath); err != nil {
-		shell.Println(err)
-	}else{
-		// save with the json data
-		accounts.SaveAccounts(sessionPath, password)
-		shell.Printf("loaded %d accounts.\n", cnt)
+	c.Print("Saving ? [y|n]")
+	if ok := c.ReadLine(); ok == "y" {
+		(&acc).Sanitize()
+		accounts = append(accounts, &acc)
+		err := accounts.Save(creds)
+		if err == nil {
+			matches.Clear()
+			matches.Append(len(accounts) - 1)
+			c.Println("saved.")
+		} else {
+			c.Println(err)
+		}
+	} else {
+		c.Println("canceled.")
 	}
-
 }
 
 func editAccount(c *ishell.Context) {
@@ -174,47 +171,47 @@ func editAccount(c *ishell.Context) {
 		c.Println(err)
 		return
 	}
-	newAcc := Account{}
-    shell.SetPrompt("  Name>")
-    newAcc.Name = c.ReadLineWithDefault((*acc).Name)
-    if name := strings.TrimSpace(newAcc.Name); name == "" {
-    	c.Println("empty name is not allowed")
-    	return
-    }
-    shell.SetPrompt("  Pseudo>")
-    newAcc.Pseudo = c.ReadLineWithDefault((*acc).Pseudo)
-    shell.SetPrompt("  Email>")
-    newAcc.Email = c.ReadLineWithDefault((*acc).Email)
-    shell.Print("  Password>")
-    newAcc.Password = c.ReadPassword()  
-    shell.SetPrompt("  Notes>")
-    newAcc.Notes = c.ReadLineWithDefault((*acc).Notes)
-    shell.SetPrompt(defaultPrompt)
+	newAcc := account.Account{}
 
-    c.Print("Saving ? [y|n]")
-    if ok := c.ReadLine(); ok == "y" {
-    	(*acc).Name = newAcc.Name 
-    	(*acc).Pseudo = newAcc.Pseudo
-    	(*acc).Email = newAcc.Email
-    	if newAcc.Password != "" {
-    		(*acc).Password = newAcc.Password
-    	}
-    	(*acc).Notes = newAcc.Notes
-    	(*acc).Sanitize()
+	shell.SetPrompt("  Name>")
+	newAcc.Name = c.ReadLineWithDefault((*acc).Name)
+	if name := strings.TrimSpace(newAcc.Name); name == "" {
+		c.Println("empty name is not allowed")
+		return
+	}
+	shell.SetPrompt("  Pseudo>")
+	newAcc.Pseudo = c.ReadLineWithDefault((*acc).Pseudo)
+	shell.SetPrompt("  Email>")
+	newAcc.Email = c.ReadLineWithDefault((*acc).Email)
+	shell.Print("  Password>")
+	newAcc.Password = c.ReadPassword()
+	shell.SetPrompt("  Notes>")
+	newAcc.Notes = c.ReadLineWithDefault((*acc).Notes)
+	selecct(idx) // TODO set the old prompt back
 
-    	err := accounts.SaveAccounts(sessionPath, password)
-    	if err == nil {
-	    	matches.Clear()
-	    	matches.Append(idx)
-	    	c.Println("saved")
-    	}else{
-    		c.Println(err)
-    	}
-    }else{
-    	c.Println("canceled.")
-    }
+	c.Print("Saving ? [y|n]")
+	if ok := c.ReadLine(); ok == "y" {
+		(*acc).Name = newAcc.Name
+		(*acc).Pseudo = newAcc.Pseudo
+		(*acc).Email = newAcc.Email
+		if newAcc.Password != "" {
+			(*acc).Password = newAcc.Password
+		}
+		(*acc).Notes = newAcc.Notes
+		(*acc).Sanitize()
+
+		err := accounts.Save(creds)
+		if err == nil {
+			matches.Clear()
+			matches.Append(idx)
+			c.Println("saved")
+		} else {
+			c.Println(err)
+		}
+	} else {
+		c.Println("canceled.")
+	}
 }
-
 
 func deleteAccount(c *ishell.Context) {
 	acc, idx, err := accountFromHint(c.Args)
@@ -225,17 +222,17 @@ func deleteAccount(c *ishell.Context) {
 
 	c.Print("delete account '", (*acc).Name, "' at index ", idx, "? [y|n] ")
 	if ok := c.ReadLine(); ok == "y" {
-    	accounts = append(accounts[:idx], accounts[idx+1:]...)
-    	err := accounts.SaveAccounts(sessionPath, password)
-    	if err == nil {
-	    	matches.RemoveIdx(idx)
-    		c.Println("saved.")
-    	}else{
-    		c.Println(err)
-    	}
-    }else{
-    	c.Println("canceled.")
-    }
+		accounts = append(accounts[:idx], accounts[idx+1:]...)
+		err := accounts.Save(creds)
+		if err == nil {
+			matches.RemoveIdx(idx)
+			c.Println("saved.")
+		} else {
+			c.Println(err)
+		}
+	} else {
+		c.Println("canceled.")
+	}
 }
 
 // ========= copying
@@ -244,49 +241,45 @@ func copyProp(c *ishell.Context, field string) {
 	acc, _, err := accountFromHint(c.Args)
 	if err != nil {
 		c.Println(err)
-		return 
+		return
 	}
 
 	value, err := acc.GetProp(field)
 
 	if err != nil {
 		c.Println(err)
-	}else if value == "" {
+	} else if value == "" {
 		c.Printf("empty %s.\n", field)
-	}else{
+	} else {
 		if err = clipboard.WriteAll(value); err != nil {
 			c.Println(err)
-		}else{
+		} else {
 			c.Printf("Copied %s from '%s' to clipboard.\n", field, (*acc).Name)
 		}
-	}	
+	}
 }
 
-// ========= utils
+// ========= other
 
-func notFound(c *ishell.Context) {
-	c.Println("not command. Assuming find...")
-	findAny(c)
-}
+func selectAccount(c *ishell.Context) {
+	if len(c.Args) == 0 {
+		c.Println("missing required parameter <index>.")
+		return
+	}
 
-func accountFromHint(args []string) (acc *Account, idx int, err error) {
-	if len(args) == 0 {
-		if matches.Length() == 1 {
-			acc, idx, err = matches.AccountAt(0)
-		}else{
-			err = errors.New("missing account info")
+	if idx, err := strconv.Atoi(c.Args[0]); err == nil {
+		if idx < len(accounts) && accounts[idx] != nil {
+			selecct(idx)
+		} else {
+			c.Printf("%d: wrong index.\n", idx)
 		}
 		return
 	}
 
-	if idx, err = strconv.Atoi(args[0]); err == nil {
-		acc, idx, err = matches.AccountAt(idx)
-	}else if idx, err = accounts.FindOne(strings.Join(args, " ")); err == nil {
-		matches.Clear()
-		matches.Append(idx)
-		acc = accounts[idx]
-	}
+	c.Printf("wrong parameter '%s': expected integer.\n", c.Args[0])
+}
 
-	return 
-
+func notFound(c *ishell.Context) {
+	c.Println("not command. Assuming find...")
+	findAny(c)
 }
