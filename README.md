@@ -81,7 +81,7 @@ How it works:
 * if you don't remember what is the current result list, type `list matches`
 * if what you type in the prompt is not a command, it is assumed to be search keywords: `[search terms]` is thus short for `find [search terms]`
 
-## Prompt commands
+## Prompt commands
 
 The easiest way to discover it is to type `help` in the prompt:
 ```text
@@ -118,3 +118,38 @@ easypass> pass 1
 Copied password from 'github.com' to clipboard.
 easypass> exit
 ```
+
+## FAQ
+
+**How can I backup my sessions?**
+
+Well, it is up to you, since the sessions are *in fine* just regular (json encrypted) files. 
+I personally save them to Dropbox.
+
+**I don't have the program installed, how can I get my data back ?**
+
+The Easypass suite is using the standard aes-128-cbc encryption. Hence, you can also decode your session file using tools 
+such as OpenSSL:
+```bash
+openssl enc -aes-128-cbc -d -a -pass pass:YOUR_PASSWORD -in PATH/TO/YOUR_SESSION_FILE
+```
+
+**Can I import data from other providers ?**
+
+Well, as long as you have data in a JSON-compliant format (or some programming skills to code a little converter), yes.
+Use the `-json` argument in conjonction with `-new` to tell the program to load data from a JSON file, or directly 
+create the encrypted file using OpenSSL:
+```bash
+openssl enc -aes-128-cbc -pass pass:YOUR_PASSWORD -salt -base64 -in PATH/TO/YOUR_JSON_FILE
+```
+
+**Can I export data to a clear JSON ?**
+
+Yes, simply use the `dump [path/to/exported.json]` command in the easypass prompt.
+
+**This project is silly, why reinvent the wheel ?**
+
+Well, because programming is fun !
+
+My seriously, I am of course using other services to store my passwords, but I love knowing that I also have one backup that I completely control.
+Before my programming days, I was using a basic Excel file. When I started CS, I figured there should be a better way. Hence EasyPass !
