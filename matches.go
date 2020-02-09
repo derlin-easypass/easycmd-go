@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"errors"
+	"fmt"
 )
 
 const notAssigned = -1
@@ -12,23 +12,25 @@ type LastMatches []int
 
 var matches *LastMatches
 
-func init(){
+func init() {
 	ar := make(LastMatches, 0)
 	matches = &ar
 }
 
 /* ======= manage cache */
 
-func (lm *LastMatches) Clear(){
+func (lm *LastMatches) Clear() {
 	*lm = (*lm)[:0]
 }
 
-func (lm *LastMatches) Fill(){
+func (lm *LastMatches) Fill() {
 	lm.Clear()
-	for idx, _ := range accounts { lm.Append(idx) }
+	for idx, _ := range accounts {
+		lm.Append(idx)
+	}
 }
 
-func (lm *LastMatches) Append(idx int){
+func (lm *LastMatches) Append(idx int) {
 	*lm = append(*lm, idx)
 }
 
@@ -40,14 +42,14 @@ func (lm *LastMatches) AccountAt(idx int) (*Account, int, error) {
 	if idx >= 0 && idx < matches.Length() {
 		accountIdx := (*lm)[idx]
 		if accountIdx >= 0 && accountIdx < len(accounts) {
-			return &accounts[(*lm)[idx]], (*lm)[idx], nil 
+			return &accounts[(*lm)[idx]], (*lm)[idx], nil
 		}
 	}
 	return nil, -1, errors.New("index out of range.")
 }
 
 func (lm *LastMatches) RemoveIdx(idx int) {
-	for i, val := range (*lm) {
+	for i, val := range *lm {
 		if val == idx {
 			shell.Printf("making %d unassigned.\n", i)
 			(*lm)[i] = notAssigned
@@ -69,8 +71,7 @@ func (lm *LastMatches) Print() {
 
 	if lm.Length() > 30 {
 		shell.ShowPaged(buffer.String())
-	}else{
+	} else {
 		shell.Println(buffer.String())
 	}
 }
-

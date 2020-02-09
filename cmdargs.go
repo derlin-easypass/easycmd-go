@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"os"
 	"fmt"
+	"os"
 )
 
 var sessionPath string
@@ -15,14 +15,13 @@ var remainingArgs []string
 
 func init() {
 	flag.StringVar(&sessionPath, "path", "", "path to the session file")
-	flag.StringVar(&password, "pass", "", "password (not recommended !)")	
-	flag.StringVar(&jsonPath, "json", "", "Combined with '-new', load session from a json file, which will be encrypted to 'path'.")	
+	flag.StringVar(&password, "pass", "", "password (not recommended !)")
+	flag.StringVar(&jsonPath, "json", "", "Combined with '-new', load session from a json file, which will be encrypted to 'path'.")
 	flag.BoolVar(&isNewSession, "new", false, "create a new session saved to 'path'")
 
 	flag.Parse()
 
 	remainingArgs = flag.Args()
-	fmt.Println(remainingArgs)
 
 	if sessionPath == "" {
 		fmt.Println("Missing required parameter -path <path to file>")
@@ -35,7 +34,7 @@ func init() {
 			fmt.Printf("path '%s' does not exist. To create a new session, use '-new' option.\n", sessionPath)
 			os.Exit(1)
 		}
-	}else{
+	} else {
 		// session exists. Ensure not to override it if the new flag is used.
 		if isNewSession {
 			fmt.Printf("path '%s' already exists and the '-new' option is used. Please delete it first or use another path.\n", sessionPath)
